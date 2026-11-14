@@ -77,9 +77,23 @@ jobs:
     secrets:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     with:
-      tag: ${{ needs.get-version.outputs.version }}
+      tag: ${{ needs.get-version.outputs.tag }}
       tag_latest: true
       push: ${{ needs.get-version.outputs.publish == 'true' }}
+
+  # Opens a pull request in tumogroup-charts that sets the blobby-server chart to the new image.
+  update-chart:
+    name: Update chart
+    needs: [get-version, docker]
+    if: ${{ needs.get-version.outputs.publish == 'true' && needs.docker.result == 'success' }}
+    permissions:
+      contents: read
+    uses: sondresjolyst/tumogroup-charts/.github/workflows/update-chart.yml@e96af8bd95ed381f66a3fd0732c558424337a865 # main
+    secrets:
+      CHARTS_PAT: ${{ secrets.CHARTS_PAT }}
+    with:
+      chart_name: blobby-server
+      tag: ${{ needs.get-version.outputs.tag }}
 
   packages:
     name: Packages

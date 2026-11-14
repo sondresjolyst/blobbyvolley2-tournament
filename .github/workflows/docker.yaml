@@ -18,7 +18,7 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: "Image tag for a release, such as 0.1.0"
+        description: "Image tag for a release, such as v0.1.0"
         type: string
         required: true
       tag_latest:
