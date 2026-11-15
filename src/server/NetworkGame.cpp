@@ -662,6 +662,12 @@ bool NetworkGame::isGameValid() const
 }
 
 
+MatchStats NetworkGame::getStats() const
+{
+	std::lock_guard<std::mutex> lock(mStatsMutex);
+	return mStats.snapshot();
+}
+
 void NetworkGame::step()
 {
 	checkSilence();
@@ -675,6 +681,12 @@ void NetworkGame::step()
 		mRecorder->record(mMatch->getState());
 
 		mMatch->step();
+		{
+			std::lock_guard<std::mutex> lock(mStatsMutex);
+			mStats.observe({mMatch->getEvents(), mMatch->getBallPosition().x,
+				mMatch->getBallActive() && !mMatch->getBallDown(),
+				mMatch->getTouches(LEFT_PLAYER), mMatch->getTouches(RIGHT_PLAYER)});
+		}
 		mScore[LEFT_PLAYER] = mMatch->getScore(LEFT_PLAYER);
 		mScore[RIGHT_PLAYER] = mMatch->getScore(RIGHT_PLAYER);
 

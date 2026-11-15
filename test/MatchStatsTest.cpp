@@ -2,6 +2,10 @@
 
 #include <vector>
 
+#include "DuelMatch.h"
+#include "FileSystem.h"
+#include "InputSource.h"
+#include "PlayerInput.h"
 #include "server/MatchStats.h"
 
 namespace
@@ -13,6 +17,15 @@ namespace
 		StepView v{ev, x, inPlay, tl, tr};
 		c.observe(v);
 	}
+
+	struct DataFixture
+	{
+		DataFixture() : mFS("./test")
+		{
+			mFS.addToSearchPath(BLOBBY_TEST_DATA_DIR);
+		}
+		FileSystem mFS;
+	};
 }
 
 BOOST_AUTO_TEST_SUITE( match_stats )
@@ -75,6 +88,42 @@ BOOST_AUTO_TEST_CASE( net_top_goes_to_the_ball_side )
 	step(c, 450.f, true, 0, 0, e);
 	BOOST_CHECK_EQUAL(c.snapshot().right.netHits, 1);
 	BOOST_CHECK_EQUAL(c.snapshot().left.netHits, 0);
+}
+
+BOOST_FIXTURE_TEST_CASE( counts_a_real_match, DataFixture )
+{
+	DuelMatch match(false, "default.lua", 15);
+	auto left = std::make_shared<InputSource>();
+	auto right = std::make_shared<InputSource>();
+	match.setInputSources(left, right);
+
+	MatchStatsCounter counter;
+	uint32_t seed = 12345;
+	PlayerInput leftInput;
+	PlayerInput rightInput;
+	for(int i = 0; i < 30000 && match.getScore(LEFT_PLAYER) + match.getScore(RIGHT_PLAYER) < 5; ++i)
+	{
+		if(i % 15 == 0)
+		{
+			seed = seed * 1664525u + 1013904223u;
+			const int bits = seed >> 24;
+			leftInput = PlayerInput((bits & 3) == 1, (bits & 3) == 2, (bits & 4) != 0);
+			rightInput = PlayerInput((bits & 24) == 8, (bits & 24) == 16, (bits & 32) != 0);
+		}
+		left->setInput(leftInput);
+		right->setInput(rightInput);
+		match.step();
+		counter.observe({match.getEvents(), match.getBallPosition().x,
+			match.getBallActive() && !match.getBallDown(),
+			match.getTouches(LEFT_PLAYER), match.getTouches(RIGHT_PLAYER)});
+	}
+
+	const MatchStats s = counter.snapshot();
+	BOOST_CHECK_EQUAL(match.getScore(LEFT_PLAYER) + match.getScore(RIGHT_PLAYER), 5);
+	BOOST_CHECK_EQUAL(s.rallies, 5);
+	BOOST_CHECK_GT(s.left.touches + s.right.touches, 0);
+	BOOST_CHECK_GT(s.left.ballSteps, 0);
+	BOOST_CHECK_GT(s.right.ballSteps, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
