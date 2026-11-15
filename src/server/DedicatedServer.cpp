@@ -960,11 +960,12 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 		}
 		if( !entry.reported )
 		{
-			const MatchStats stats = entry.game->getStats();
 			// the winner is checked first, since a player may leave right after the win
 			PlayerSide winner = entry.game->getWinner();
 			if( winner != NO_PLAYER )
 			{
+				// the stats are taken after the winner was seen, so they hold the last rally
+				const MatchStats stats = entry.game->getStats();
 				entry.reported = true;
 				mTournament->gameFinished( entry.matchId, winner == LEFT_PLAYER ? 1 : 2,
 							entry.game->getScore(LEFT_PLAYER), entry.game->getScore(RIGHT_PLAYER),
@@ -981,6 +982,7 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 			else if( !entry.game->isGameValid() )
 			{
 				entry.reported = true;
+				const MatchStats stats = entry.game->getStats();
 				// the player who left is no longer in the player map. Player 1 plays on the left.
 				int left = 0;
 				const bool leftGone = mPlayerMap.count( entry.game->getPlayerID(LEFT_PLAYER) ) == 0;

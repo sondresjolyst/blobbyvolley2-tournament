@@ -45,6 +45,7 @@ namespace
 	const std::size_t MAX_SPONSORS_BYTES = 8 * 1024 * 1024;
 	const std::size_t MAX_ANSWER_BYTES = 64 * 1024;
 	const unsigned LIVE_TIMEOUT_MS = 2000;
+	const unsigned LIVE_ROUND_BUDGET_MS = 500;
 	// longest site text that is logged, and longest sponsor name that is stored
 	const std::size_t MAX_SITE_TEXT_BYTES = 200;
 	const std::size_t MAX_SPONSOR_NAME_BYTES = 64;
@@ -1196,10 +1197,19 @@ void SiteLink::sendLive(unsigned long long now_ms)
 		}
 	}
 
-	for (const LiveScore& score : due)
+	// a slow site must not hold up the game reports, so one round has a time budget
+	// and ends after the first post that fails
+	const auto roundStart = std::chrono::steady_clock::now();
+	for (size_t i = 0; i < due.size(); ++i)
 	{
+		const LiveScore& score = due[i];
 		if (stopping())
 			return;
+		if (i > 0 && std::chrono::steady_clock::now() - roundStart > std::chrono::milliseconds(LIVE_ROUND_BUDGET_MS))
+		{
+			putLiveBack(due, i);
+			return;
+		}
 		mLiveSentAt[score.matchId] = now_ms;
 		// best effort, a live score is dropped while the site is down
 		if (mDown)
@@ -1219,8 +1229,21 @@ void SiteLink::sendLive(unsigned long long now_ms)
 		request.path = "/api/server/live";
 		request.body = body.dump();
 		request.timeoutMs = LIVE_TIMEOUT_MS;
-		mHttp.send(request);
+		const HttpResponse response = mHttp.send(request);
+		if (response.status == 0 || !response.error.empty())
+		{
+			putLiveBack(due, i + 1);
+			return;
+		}
 	}
+}
+
+void SiteLink::putLiveBack(const std::vector<LiveScore>& due, size_t from)
+{
+	// the scores that were not sent wait for the next step, a newer score of the match wins
+	std::lock_guard<std::mutex> lock(mLiveMutex);
+	for (size_t i = from; i < due.size(); ++i)
+		mLive.emplace(due[i].matchId, due[i]);
 }
 
 // - - - - - - - - - - - - - - - - - -

@@ -299,6 +299,7 @@ class SiteLink
 		void sponsors(unsigned long long now_ms);
 		void sendOutbox(unsigned long long now_ms);
 		void sendLive(unsigned long long now_ms);
+		void putLiveBack(const std::vector<LiveScore>& due, size_t from);
 		bool writePlayersFile();
 		bool stopping() const { return mStop && mStop->load(); }
 		void reachable(bool ok, const std::string& what, bool token = false);
