@@ -30,4 +30,11 @@ struct RecordingEvents : public TournamentEvents
 	}
 	void gameEnded(const GameReport& report) override { games.push_back(report); }
 	void seriesEnded(const SeriesResult& result) override { series.push_back(result); }
+	struct Live { int matchId, game, player1, points1, player2, points2; bool hasStats; bool training; };
+	std::vector<Live> live;
+	void liveScore(int matchId, int game, int player1, int points1, int player2, int points2,
+				   const MatchStats* stats, bool training) override
+	{
+		live.push_back(Live{matchId, game, player1, points1, player2, points2, stats != nullptr, training});
+	}
 };

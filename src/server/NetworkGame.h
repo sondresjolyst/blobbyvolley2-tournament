@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpeedController.h"
 #include "DuelMatch.h"
 #include "BlobbyDebug.h"
+#include "MatchStats.h"
 
 class ThreadSafeRakServer;
 class ReplayRecorder;
@@ -82,6 +83,8 @@ class NetworkGame : public ObjectCounter<NetworkGame>
 
 		/// It returns whether both clients are still connected.
 		bool isGameValid() const;
+		// a snapshot of the stats counted so far, safe to call from other threads
+		MatchStats getStats() const;
 
 		// This function processes the queued network packets,
 		// makes a physic step, checks the rules and broadcasts
@@ -186,6 +189,8 @@ class NetworkGame : public ObjectCounter<NetworkGame>
 		std::mutex mPacketQueueMutex;
 
 		const std::unique_ptr<DuelMatch> mMatch;
+		mutable std::mutex mStatsMutex;
+		MatchStatsCounter mStats;
 		SpeedController mSpeedController;
 		std::shared_ptr<InputSource> mLeftInput;
 		std::shared_ptr<InputSource> mRightInput;

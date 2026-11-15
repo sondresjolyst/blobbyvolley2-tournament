@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "FileUtil.h"
 #include "MatchAssignments.h"
+#include "MatchStatsJson.h"
 #include "SponsorBoard.h"
 #include "base64.h"
 
@@ -237,6 +238,13 @@ void Outbox::addGame(const GameReport& report)
 	entry.winnerId = report.finished ? report.winnerId : 0;
 	entry.path = outboxPath(entry.kind, report.matchId);
 	entry.body = gameReportJson(report);
+	if (report.hasStats)
+	{
+		// the report text is made without json, so the stats join it here
+		json body = json::parse(entry.body);
+		body["stats"] = statsJson(report.stats, report.player1, report.player2);
+		entry.body = body.dump();
+	}
 	add(std::move(entry));
 }
 
@@ -1202,6 +1210,10 @@ void SiteLink::sendLive(unsigned long long now_ms)
 		body["points"] = json::array({
 			json{{"playerId", score.player1}, {"points", score.points1}},
 			json{{"playerId", score.player2}, {"points", score.points2}}});
+		if (score.hasStats)
+			body["stats"] = statsJson(score.stats, score.player1, score.player2);
+		if (score.training)
+			body["training"] = true;
 		HttpRequest request;
 		request.post = true;
 		request.path = "/api/server/live";
@@ -1328,10 +1340,11 @@ void SiteReporter::seriesEnded(const SeriesResult& result)
 		mInner->seriesEnded(result);
 }
 
-void SiteReporter::liveScore(int matchId, int game, int player1, int points1, int player2, int points2)
+void SiteReporter::liveScore(int matchId, int game, int player1, int points1, int player2, int points2,
+							 const MatchStats* stats, bool training)
 {
 	if (mInner)
-		mInner->liveScore(matchId, game, player1, points1, player2, points2);
+		mInner->liveScore(matchId, game, player1, points1, player2, points2, stats, training);
 	LiveScore score;
 	score.matchId = matchId;
 	score.game = game;
@@ -1339,5 +1352,11 @@ void SiteReporter::liveScore(int matchId, int game, int player1, int points1, in
 	score.points1 = points1;
 	score.player2 = player2;
 	score.points2 = points2;
+	score.training = training;
+	if (stats)
+	{
+		score.hasStats = true;
+		score.stats = *stats;
+	}
 	mLink->setLiveScore(score);
 }

@@ -951,7 +951,8 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 			{
 				entry.livePoints1 = points1;
 				entry.livePoints2 = points2;
-				mTournament->reportLiveScore( entry.matchId, points1, points2 );
+				const MatchStats liveStats = entry.game->getStats();
+				mTournament->reportLiveScore( entry.matchId, points1, points2, &liveStats );
 			}
 		}
 		if( !entry.reported )
@@ -960,10 +961,13 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 			PlayerSide winner = entry.game->getWinner();
 			if( winner != NO_PLAYER )
 			{
+				// the stats are taken after the winner was seen, so they hold the last rally
+				const MatchStats stats = entry.game->getStats();
 				entry.reported = true;
 				mTournament->gameFinished( entry.matchId, winner == LEFT_PLAYER ? 1 : 2,
 							entry.game->getScore(LEFT_PLAYER), entry.game->getScore(RIGHT_PLAYER),
-							entry.startedAt, std::chrono::system_clock::now(), now_ms );
+							entry.startedAt, std::chrono::system_clock::now(), now_ms,
+							&stats );
 			}
 			else if( !entry.game->isGameValid() && entry.game->didNotStart() )
 			{
@@ -975,6 +979,7 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 			else if( !entry.game->isGameValid() )
 			{
 				entry.reported = true;
+				const MatchStats stats = entry.game->getStats();
 				// the player who left is no longer in the player map. Player 1 plays on the left.
 				int left = 0;
 				const bool leftGone = mPlayerMap.count( entry.game->getPlayerID(LEFT_PLAYER) ) == 0;
@@ -984,7 +989,8 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 					left = leftGone ? entry.player1 : entry.player2;
 				mTournament->gameAbandoned( entry.matchId,
 							entry.game->getScore(LEFT_PLAYER), entry.game->getScore(RIGHT_PLAYER),
-							entry.startedAt, std::chrono::system_clock::now(), left );
+							entry.startedAt, std::chrono::system_clock::now(), left,
+							&stats );
 			}
 		}
 

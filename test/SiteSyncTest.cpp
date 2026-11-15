@@ -12,6 +12,7 @@
 #include "server/FileUtil.h"
 #include "server/JoinCodes.h"
 #include "server/MatchAssignments.h"
+#include "server/MatchStatsJson.h"
 #include "base64.h"
 #include "TestBmp.h"
 #include "TestDir.h"
@@ -218,6 +219,70 @@ BOOST_AUTO_TEST_CASE( outbox_survives_a_restart_in_order )
 	// new reports continue the order
 	again.addConnected(9, 21, 25);
 	BOOST_CHECK(again.entries().back().seq > entries[2].seq);
+	std::remove(path.c_str());
+}
+
+BOOST_AUTO_TEST_CASE( game_report_carries_stats )
+{
+	MatchStats stats;
+	stats.left.touches = 9;
+	stats.left.ballSteps = 120;
+	stats.right.errors = 2;
+	stats.rallies = 5;
+	stats.longestRally = 7;
+	stats.rallyTouches = 31;
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	report.hasStats = true;
+	report.stats = stats;
+
+	const std::string path = inFolder("outbox-stats.json");
+	std::remove(path.c_str());
+	Outbox outbox(path);
+	outbox.load();
+	outbox.addGame(report);
+	auto entries = outbox.entries();
+	BOOST_REQUIRE_EQUAL(entries.size(), 1u);
+	auto body = nlohmann::json::parse(entries[0].body);
+	BOOST_REQUIRE(body.contains("stats"));
+	BOOST_CHECK(body["stats"] == statsJson(stats, 12, 17));
+	BOOST_CHECK_EQUAL(body["stats"]["players"][0]["playerId"].get<int>(), 12);
+	std::remove(path.c_str());
+}
+
+BOOST_AUTO_TEST_CASE( old_outbox_file_without_stats_still_sends )
+{
+	const std::string path = inFolder("outbox-old.json");
+	std::remove(path.c_str());
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	{
+		Outbox outbox(path);
+		outbox.load();
+		outbox.addGame(report);
+	}
+	Outbox again(path);
+	again.load();
+	auto entries = again.entries();
+	BOOST_REQUIRE_EQUAL(entries.size(), 1u);
+	BOOST_CHECK(!contains(entries[0].body, "stats"));
+	BOOST_CHECK(nlohmann::json::parse(entries[0].body) == nlohmann::json::parse(gameReportJson(report)));
+	std::remove(path.c_str());
+}
+
+BOOST_AUTO_TEST_CASE( training_report_names_the_bot_zero )
+{
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	report.player2 = 0;
+	report.training = true;
+	report.hasStats = true;
+
+	const std::string path = inFolder("outbox-training.json");
+	std::remove(path.c_str());
+	Outbox outbox(path);
+	outbox.load();
+	outbox.addGame(report);
+	auto body = nlohmann::json::parse(outbox.entries()[0].body);
+	BOOST_CHECK_EQUAL(body["stats"]["players"][0]["playerId"].get<int>(), 12);
+	BOOST_CHECK_EQUAL(body["stats"]["players"][1]["playerId"].get<int>(), 0);
 	std::remove(path.c_str());
 }
 
@@ -978,6 +1043,66 @@ BOOST_AUTO_TEST_CASE( live_score_is_throttled_and_never_queued )
 	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 2u);
 }
 
+BOOST_AUTO_TEST_CASE( live_score_carries_stats )
+{
+	FakeSite site;
+	FakeHttp http;
+	http.handler = std::ref(site);
+	Outbox outbox("");
+	SiteLink link(http, outbox, testPaths("livestats"), ServerLog());
+
+	LiveScore score;
+	score.matchId = 7;
+	score.game = 1;
+	score.player1 = 12;
+	score.player2 = 17;
+	score.hasStats = true;
+	score.stats.left.touches = 9;
+	score.stats.rallies = 5;
+	link.setLiveScore(score);
+	link.step(0);
+	auto live = http.posts("/api/server/live");
+	BOOST_REQUIRE_EQUAL(live.size(), 1u);
+	auto body = nlohmann::json::parse(live[0].body);
+	BOOST_REQUIRE(body.contains("stats"));
+	BOOST_CHECK(body["stats"] == statsJson(score.stats, 12, 17));
+	BOOST_CHECK(!body.contains("training"));
+
+	// stats that change every step still go out at most once per interval
+	for (int i = 1; i <= 5; ++i)
+	{
+		score.stats.left.touches = 10 + i;
+		link.setLiveScore(score);
+		link.step(static_cast<unsigned long long>(i) * 100);
+	}
+	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 1u);
+	link.step(1000);
+	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 2u);
+}
+
+BOOST_AUTO_TEST_CASE( training_live_score_has_the_flag )
+{
+	FakeSite site;
+	FakeHttp http;
+	http.handler = std::ref(site);
+	Outbox outbox("");
+	SiteLink link(http, outbox, testPaths("livetraining"), ServerLog());
+
+	LiveScore score;
+	score.matchId = 7;
+	score.game = 1;
+	score.player1 = 12;
+	score.player2 = 0;
+	score.training = true;
+	link.setLiveScore(score);
+	link.step(0);
+	auto live = http.posts("/api/server/live");
+	BOOST_REQUIRE_EQUAL(live.size(), 1u);
+	auto body = nlohmann::json::parse(live[0].body);
+	BOOST_CHECK(body["training"] == true);
+	BOOST_CHECK_EQUAL(body["points"][1]["playerId"].get<int>(), 0);
+}
+
 BOOST_AUTO_TEST_CASE( outbox_loads_only_known_paths )
 {
 	const std::string path = inFolder("outbox_paths.jsonl");
@@ -1102,6 +1227,30 @@ BOOST_AUTO_TEST_CASE( sponsors_are_capped_and_names_are_cut )
 	BOOST_CHECK(!contains(stored, std::string(65, 'n')));
 	std::remove((folder + "/logos/" + hash + ".bmp").c_str());
 	std::remove((folder + "/board.json").c_str());
+}
+
+BOOST_AUTO_TEST_CASE( stats_json_matches_the_contract )
+{
+	MatchStats s;
+	s.left.ballSteps = 4120;
+	s.left.touches = 31;
+	s.right.errors = 4;
+	s.rallies = 14;
+	s.longestRally = 9;
+	s.rallyTouches = 58;
+	const nlohmann::json j = statsJson(s, 12, 7);
+	BOOST_REQUIRE_EQUAL(j["players"].size(), 2u);
+	BOOST_CHECK_EQUAL(j["players"][0]["playerId"], 12);
+	BOOST_CHECK_EQUAL(j["players"][1]["playerId"], 7);
+	BOOST_CHECK_EQUAL(j["players"][0]["ballSteps"], 4120);
+	BOOST_CHECK_EQUAL(j["players"][0]["touches"], 31);
+	BOOST_CHECK_EQUAL(j["players"][1]["errors"], 4);
+	BOOST_CHECK_EQUAL(j["players"][0]["netHits"], 0);
+	BOOST_CHECK_EQUAL(j["players"][0].size(), 5u);
+	BOOST_CHECK_EQUAL(j.size(), 4u);
+	BOOST_CHECK_EQUAL(j["rallies"], 14);
+	BOOST_CHECK_EQUAL(j["longestRally"], 9);
+	BOOST_CHECK_EQUAL(j["rallyTouches"], 58);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
