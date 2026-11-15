@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/sondresjolyst/blobbyvolley2-tournament/compare/v0.3.0...v0.4.0) (2026-11-15)
+
+
+### Features
+
+* **server:** count match stats and send them to the site ([#102](https://github.com/sondresjolyst/blobbyvolley2-tournament/issues/102)) ([29c8c87](https://github.com/sondresjolyst/blobbyvolley2-tournament/commit/29c8c87fb9dd1d8ee6a84fddcb75c43a176769f2))
+
+
+### Bug Fixes
+
+* bound string lengths read from files and reject Windows device names in package paths ([#97](https://github.com/sondresjolyst/blobbyvolley2-tournament/issues/97)) ([0f4d54f](https://github.com/sondresjolyst/blobbyvolley2-tournament/commit/0f4d54f6431f7392a86e17eba96ecb7f308bd402))
+* **release:** rebuild packages that are missing on a release ([#90](https://github.com/sondresjolyst/blobbyvolley2-tournament/issues/90)) ([3f7fad2](https://github.com/sondresjolyst/blobbyvolley2-tournament/commit/3f7fad2fda2641bca65dc816f6681b6a3a8a3943))
+
 ## [0.3.0](https://github.com/sondresjolyst/blobbyvolley2-tournament/compare/v0.2.0...v0.3.0) (2026-11-12)
 
 
