@@ -222,6 +222,70 @@ BOOST_AUTO_TEST_CASE( outbox_survives_a_restart_in_order )
 	std::remove(path.c_str());
 }
 
+BOOST_AUTO_TEST_CASE( game_report_carries_stats )
+{
+	MatchStats stats;
+	stats.left.touches = 9;
+	stats.left.ballSteps = 120;
+	stats.right.errors = 2;
+	stats.rallies = 5;
+	stats.longestRally = 7;
+	stats.rallyTouches = 31;
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	report.hasStats = true;
+	report.stats = stats;
+
+	const std::string path = inFolder("outbox-stats.json");
+	std::remove(path.c_str());
+	Outbox outbox(path);
+	outbox.load();
+	outbox.addGame(report);
+	auto entries = outbox.entries();
+	BOOST_REQUIRE_EQUAL(entries.size(), 1u);
+	auto body = nlohmann::json::parse(entries[0].body);
+	BOOST_REQUIRE(body.contains("stats"));
+	BOOST_CHECK(body["stats"] == statsJson(stats, 12, 17));
+	BOOST_CHECK_EQUAL(body["stats"]["players"][0]["playerId"].get<int>(), 12);
+	std::remove(path.c_str());
+}
+
+BOOST_AUTO_TEST_CASE( old_outbox_file_without_stats_still_sends )
+{
+	const std::string path = inFolder("outbox-old.json");
+	std::remove(path.c_str());
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	{
+		Outbox outbox(path);
+		outbox.load();
+		outbox.addGame(report);
+	}
+	Outbox again(path);
+	again.load();
+	auto entries = again.entries();
+	BOOST_REQUIRE_EQUAL(entries.size(), 1u);
+	BOOST_CHECK(!contains(entries[0].body, "stats"));
+	BOOST_CHECK(nlohmann::json::parse(entries[0].body) == nlohmann::json::parse(gameReportJson(report)));
+	std::remove(path.c_str());
+}
+
+BOOST_AUTO_TEST_CASE( training_report_names_the_bot_zero )
+{
+	GameReport report = makeReport(7, 1, true, 12, "a");
+	report.player2 = 0;
+	report.training = true;
+	report.hasStats = true;
+
+	const std::string path = inFolder("outbox-training.json");
+	std::remove(path.c_str());
+	Outbox outbox(path);
+	outbox.load();
+	outbox.addGame(report);
+	auto body = nlohmann::json::parse(outbox.entries()[0].body);
+	BOOST_CHECK_EQUAL(body["stats"]["players"][0]["playerId"].get<int>(), 12);
+	BOOST_CHECK_EQUAL(body["stats"]["players"][1]["playerId"].get<int>(), 0);
+	std::remove(path.c_str());
+}
+
 BOOST_AUTO_TEST_CASE( outbox_sends_one_report_per_match_at_a_time )
 {
 	Outbox outbox("");

@@ -956,6 +956,7 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 		}
 		if( !entry.reported )
 		{
+			const MatchStats stats = entry.game->getStats();
 			// the winner is checked first, since a player may leave right after the win
 			PlayerSide winner = entry.game->getWinner();
 			if( winner != NO_PLAYER )
@@ -963,7 +964,8 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 				entry.reported = true;
 				mTournament->gameFinished( entry.matchId, winner == LEFT_PLAYER ? 1 : 2,
 							entry.game->getScore(LEFT_PLAYER), entry.game->getScore(RIGHT_PLAYER),
-							entry.startedAt, std::chrono::system_clock::now(), now_ms );
+							entry.startedAt, std::chrono::system_clock::now(), now_ms,
+							&stats );
 			}
 			else if( !entry.game->isGameValid() && entry.game->didNotStart() )
 			{
@@ -984,7 +986,8 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 					left = leftGone ? entry.player1 : entry.player2;
 				mTournament->gameAbandoned( entry.matchId,
 							entry.game->getScore(LEFT_PLAYER), entry.game->getScore(RIGHT_PLAYER),
-							entry.startedAt, std::chrono::system_clock::now(), left );
+							entry.startedAt, std::chrono::system_clock::now(), left,
+							&stats );
 			}
 		}
 

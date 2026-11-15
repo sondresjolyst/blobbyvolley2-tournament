@@ -402,7 +402,7 @@ void TournamentDirector::gameNotStarted(int matchId, bool canRetry, unsigned lon
 }
 
 GameReport TournamentDirector::makeReport(int matchId, const Series& s, int points1, int points2,
-									WallTime startedAt, WallTime endedAt)
+									WallTime startedAt, WallTime endedAt, const MatchStats* stats)
 {
 	GameReport report;
 	report.reportId = mMakeReportId();
@@ -415,11 +415,17 @@ GameReport TournamentDirector::makeReport(int matchId, const Series& s, int poin
 	report.startedAt = startedAt;
 	report.endedAt = endedAt;
 	report.training = s.playing.isTraining();
+	if (stats)
+	{
+		report.hasStats = true;
+		report.stats = *stats;
+	}
 	return report;
 }
 
 void TournamentDirector::gameFinished(int matchId, int winner, int points1, int points2,
-									WallTime startedAt, WallTime endedAt, unsigned long long now_ms)
+									WallTime startedAt, WallTime endedAt, unsigned long long now_ms,
+									const MatchStats* stats)
 {
 	auto found = mSeries.find(matchId);
 	if (found == mSeries.end() || !found->second.running)
@@ -427,7 +433,7 @@ void TournamentDirector::gameFinished(int matchId, int winner, int points1, int 
 	Series& s = found->second;
 	s.running = false;
 
-	GameReport report = makeReport(matchId, s, points1, points2, startedAt, endedAt);
+	GameReport report = makeReport(matchId, s, points1, points2, startedAt, endedAt, stats);
 	report.finished = true;
 	report.winnerId = winner == 1 ? s.playing.player1 : s.playing.player2;
 
@@ -475,7 +481,7 @@ void TournamentDirector::gameFinished(int matchId, int winner, int points1, int 
 }
 
 void TournamentDirector::gameAbandoned(int matchId, int points1, int points2, WallTime startedAt, WallTime endedAt,
-									int leftPlayerId)
+									int leftPlayerId, const MatchStats* stats)
 {
 	auto found = mSeries.find(matchId);
 	if (found == mSeries.end() || !found->second.running)
@@ -483,7 +489,7 @@ void TournamentDirector::gameAbandoned(int matchId, int points1, int points2, Wa
 	Series& s = found->second;
 	s.running = false;
 
-	GameReport report = makeReport(matchId, s, points1, points2, startedAt, endedAt);
+	GameReport report = makeReport(matchId, s, points1, points2, startedAt, endedAt, stats);
 	report.finished = false;
 	if (s.playing.hasPlayer(leftPlayerId))
 		report.leftPlayerId = leftPlayerId;

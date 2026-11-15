@@ -50,6 +50,7 @@ set(common_SRC
 	server/FileUtil.cpp server/FileUtil.h
 	server/NetworkPlayer.cpp server/NetworkPlayer.h
 	server/NetworkGame.cpp server/NetworkGame.h
+	server/MatchStats.cpp server/MatchStats.h
 	server/MatchMaker.cpp server/MatchMaker.h
 	server/JoinCodes.cpp server/JoinCodes.h
 	server/MatchAssignments.cpp server/MatchAssignments.h
@@ -99,7 +100,6 @@ set (blobby_SRC ${common_SRC} ${inputdevice_SRC}
 set (blobby-server_SRC ${common_SRC}
 	server/servermain.cpp
 	server/SiteConfig.cpp server/SiteConfig.h
-	server/MatchStats.cpp server/MatchStats.h
 	)
 
 # The tournament site client of the server needs libcurl and nlohmann_json. Only the server uses them.

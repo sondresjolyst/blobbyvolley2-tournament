@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 
 #include "MatchAssignments.h"
+#include "MatchStats.h"
 #include "NetworkMessage.h"
 #include "ServerLog.h"
 #include "TournamentProtocol.h"
@@ -66,6 +67,9 @@ struct GameReport
 	WallTime endedAt;
 	/// True for a game of a training match against the server bot. The site keeps it out of the real stats.
 	bool training = false;
+	/// The counted stats of the game. Not part of gameReportJson, the site sync adds them.
+	bool hasStats = false;
+	MatchStats stats;
 };
 
 /// A best-of series that is decided.
@@ -226,12 +230,13 @@ class TournamentDirector
 
 		/// A running game was played out. winner is 1 or 2.
 		void gameFinished(int matchId, int winner, int points1, int points2,
-						WallTime startedAt, WallTime endedAt, unsigned long long now_ms);
+						WallTime startedAt, WallTime endedAt, unsigned long long now_ms,
+						const MatchStats* stats = nullptr);
 
 		/// A running game ended without a winner, for example because a player left.
 		/// The match then waits until its assignment brings a new nextGame or awaitingDecision false.
 		void gameAbandoned(int matchId, int points1, int points2, WallTime startedAt, WallTime endedAt,
-						int leftPlayerId = 0);
+						int leftPlayerId = 0, const MatchStats* stats = nullptr);
 
 		/// The score of the running game of a match changed. points1 is the score of player 1.
 		void reportLiveScore(int matchId, int points1, int points2);
@@ -249,7 +254,8 @@ class TournamentDirector
 		bool isBusy(int playerId) const;
 		static void takeWins(Series& series, const MatchAssignment& match);
 		/// The report of the game the series plays, with a new report id and the fields both outcomes share.
-		GameReport makeReport(int matchId, const Series& s, int points1, int points2, WallTime startedAt, WallTime endedAt);
+		GameReport makeReport(int matchId, const Series& s, int points1, int points2, WallTime startedAt, WallTime endedAt,
+						const MatchStats* stats);
 
 		unsigned mMaxRunning;
 		unsigned mMaxTraining = DEFAULT_MAX_TRAINING;

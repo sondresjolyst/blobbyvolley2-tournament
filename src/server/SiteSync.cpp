@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "FileUtil.h"
 #include "MatchAssignments.h"
+#include "MatchStatsJson.h"
 #include "SponsorBoard.h"
 #include "base64.h"
 
@@ -237,6 +238,13 @@ void Outbox::addGame(const GameReport& report)
 	entry.winnerId = report.finished ? report.winnerId : 0;
 	entry.path = outboxPath(entry.kind, report.matchId);
 	entry.body = gameReportJson(report);
+	if (report.hasStats)
+	{
+		// the report text is made without json, so the stats join it here
+		json body = json::parse(entry.body);
+		body["stats"] = statsJson(report.stats, report.player1, report.player2);
+		entry.body = body.dump();
+	}
 	add(std::move(entry));
 }
 

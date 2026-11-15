@@ -993,6 +993,48 @@ BOOST_AUTO_TEST_CASE( abandoned_report_names_the_player_who_left )
 	BOOST_CHECK(gameReportJson(f.events->games[0]).find("leftPlayerId") == std::string::npos);
 }
 
+BOOST_AUTO_TEST_CASE( finished_report_carries_the_stats_of_the_game )
+{
+	DirectorFixture f;
+	f.director.setAssignments({ makeMatch(7, 12, 17, 3) });
+	f.director.playerConnected(12);
+	f.director.playerConnected(17);
+	BOOST_REQUIRE_EQUAL(f.startedIds(0).size(), 1u);
+	MatchStats stats;
+	stats.rallies = 4;
+	f.director.gameFinished(7, 1, 15, 3, f.start, f.end, 0, &stats);
+	BOOST_REQUIRE_EQUAL(f.events->games.size(), 1u);
+	BOOST_REQUIRE(f.events->games[0].hasStats);
+	BOOST_CHECK_EQUAL(f.events->games[0].stats.rallies, 4);
+}
+
+BOOST_AUTO_TEST_CASE( abandoned_report_carries_the_stats_so_far )
+{
+	DirectorFixture f;
+	f.director.setAssignments({ makeMatch(7, 12, 17, 3) });
+	f.director.playerConnected(12);
+	f.director.playerConnected(17);
+	BOOST_REQUIRE_EQUAL(f.startedIds(0).size(), 1u);
+	MatchStats stats;
+	stats.rallies = 2;
+	f.director.gameAbandoned(7, 1, 0, f.start, f.end, 0, &stats);
+	BOOST_REQUIRE_EQUAL(f.events->games.size(), 1u);
+	BOOST_REQUIRE(f.events->games[0].hasStats);
+	BOOST_CHECK_EQUAL(f.events->games[0].stats.rallies, 2);
+}
+
+BOOST_AUTO_TEST_CASE( report_without_stats_has_none )
+{
+	DirectorFixture f;
+	f.director.setAssignments({ makeMatch(7, 12, 17, 3) });
+	f.director.playerConnected(12);
+	f.director.playerConnected(17);
+	BOOST_REQUIRE_EQUAL(f.startedIds(0).size(), 1u);
+	f.director.gameFinished(7, 1, 15, 3, f.start, f.end, 0);
+	BOOST_REQUIRE_EQUAL(f.events->games.size(), 1u);
+	BOOST_CHECK(!f.events->games[0].hasStats);
+}
+
 BOOST_AUTO_TEST_CASE( parse_reads_the_next_game_delay )
 {
 	std::vector<std::string> warnings;
