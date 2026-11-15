@@ -271,7 +271,7 @@ cd blobbyvolley2-tournament-<version>-linux-x64
 ./blobby
 ```
 `./blobby` is a small launcher that installs new versions and starts the game in the folder `app-<version>`, see [doc/launcher.md](doc/launcher.md). Unpack the package into a folder you can write to, so it can update itself.
-The package has SDL2, PhysFS, libcurl, libarchive and the libraries they need in the `lib` folders. It uses OpenGL, X11, Wayland, PulseAudio, ALSA, D-Bus, systemd and the C and C++ runtime from the system, which a desktop distribution has. It is built on Ubuntu 22.04 and runs on that and newer distributions.
+The package has SDL2, PhysFS, libcurl, libarchive and the libraries they need in the `lib` folders. It uses OpenGL, X11, Wayland, PulseAudio, ALSA, D-Bus, systemd and the C and C++ runtime from the system, which a desktop distribution has. It is built on Ubuntu 24.04 and runs on that and newer distributions.
 
 Start the dedicated server from its version folder, so it finds its `data` folder:
 ```bash
