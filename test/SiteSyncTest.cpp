@@ -1043,6 +1043,66 @@ BOOST_AUTO_TEST_CASE( live_score_is_throttled_and_never_queued )
 	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 2u);
 }
 
+BOOST_AUTO_TEST_CASE( live_score_carries_stats )
+{
+	FakeSite site;
+	FakeHttp http;
+	http.handler = std::ref(site);
+	Outbox outbox("");
+	SiteLink link(http, outbox, testPaths("livestats"), ServerLog());
+
+	LiveScore score;
+	score.matchId = 7;
+	score.game = 1;
+	score.player1 = 12;
+	score.player2 = 17;
+	score.hasStats = true;
+	score.stats.left.touches = 9;
+	score.stats.rallies = 5;
+	link.setLiveScore(score);
+	link.step(0);
+	auto live = http.posts("/api/server/live");
+	BOOST_REQUIRE_EQUAL(live.size(), 1u);
+	auto body = nlohmann::json::parse(live[0].body);
+	BOOST_REQUIRE(body.contains("stats"));
+	BOOST_CHECK(body["stats"] == statsJson(score.stats, 12, 17));
+	BOOST_CHECK(!body.contains("training"));
+
+	// stats that change every step still go out at most once per interval
+	for (int i = 1; i <= 5; ++i)
+	{
+		score.stats.left.touches = 10 + i;
+		link.setLiveScore(score);
+		link.step(static_cast<unsigned long long>(i) * 100);
+	}
+	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 1u);
+	link.step(1000);
+	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 2u);
+}
+
+BOOST_AUTO_TEST_CASE( training_live_score_has_the_flag )
+{
+	FakeSite site;
+	FakeHttp http;
+	http.handler = std::ref(site);
+	Outbox outbox("");
+	SiteLink link(http, outbox, testPaths("livetraining"), ServerLog());
+
+	LiveScore score;
+	score.matchId = 7;
+	score.game = 1;
+	score.player1 = 12;
+	score.player2 = 0;
+	score.training = true;
+	link.setLiveScore(score);
+	link.step(0);
+	auto live = http.posts("/api/server/live");
+	BOOST_REQUIRE_EQUAL(live.size(), 1u);
+	auto body = nlohmann::json::parse(live[0].body);
+	BOOST_CHECK(body["training"] == true);
+	BOOST_CHECK_EQUAL(body["points"][1]["playerId"].get<int>(), 0);
+}
+
 BOOST_AUTO_TEST_CASE( outbox_loads_only_known_paths )
 {
 	const std::string path = inFolder("outbox_paths.jsonl");

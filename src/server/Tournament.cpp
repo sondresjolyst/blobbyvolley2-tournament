@@ -116,7 +116,7 @@ void writeTournamentStatus(RakNet::BitStream& stream, const PlayerTournamentStat
 
 TournamentEvents::~TournamentEvents() = default;
 
-void TournamentEvents::liveScore(int, int, int, int, int, int)
+void TournamentEvents::liveScore(int, int, int, int, int, int, const MatchStats*, bool)
 {
 }
 
@@ -506,16 +506,14 @@ void TournamentDirector::gameAbandoned(int matchId, int points1, int points2, Wa
 	s.held = true;
 }
 
-void TournamentDirector::reportLiveScore(int matchId, int points1, int points2)
+void TournamentDirector::reportLiveScore(int matchId, int points1, int points2, const MatchStats* stats)
 {
 	auto found = mSeries.find(matchId);
 	if (found == mSeries.end() || !found->second.running || !mEvents)
 		return;
 	const Series& s = found->second;
-	// the site shows no live score of a training match
-	if (s.playing.isTraining())
-		return;
-	mEvents->liveScore(matchId, s.playingGame, s.playing.player1, points1, s.playing.player2, points2);
+	mEvents->liveScore(matchId, s.playingGame, s.playing.player1, points1, s.playing.player2, points2, stats,
+					   s.playing.isTraining());
 }
 
 PlayerTournamentStatus TournamentDirector::statusOf(int playerId, unsigned long long now_ms) const

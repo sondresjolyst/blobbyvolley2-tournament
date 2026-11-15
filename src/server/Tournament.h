@@ -105,7 +105,8 @@ class TournamentEvents
 		/// A player has won the series.
 		virtual void seriesEnded(const SeriesResult& result) = 0;
 		/// The score of a running game changed. Player 1 plays on the left. Does nothing by default.
-		virtual void liveScore(int matchId, int game, int player1, int points1, int player2, int points2);
+		virtual void liveScore(int matchId, int game, int player1, int points1, int player2, int points2,
+							   const MatchStats* stats, bool training);
 };
 
 /*! \class TournamentLog
@@ -239,7 +240,7 @@ class TournamentDirector
 						int leftPlayerId = 0, const MatchStats* stats = nullptr);
 
 		/// The score of the running game of a match changed. points1 is the score of player 1.
-		void reportLiveScore(int matchId, int points1, int points2);
+		void reportLiveScore(int matchId, int points1, int points2, const MatchStats* stats = nullptr);
 
 		PlayerTournamentStatus statusOf(int playerId, unsigned long long now_ms) const;
 

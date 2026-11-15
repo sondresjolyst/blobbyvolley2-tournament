@@ -321,21 +321,23 @@ BOOST_AUTO_TEST_CASE( normal_report_has_no_training_flag )
 	BOOST_CHECK(gameReportJson(events->games[0]).find("training") == std::string::npos);
 }
 
-BOOST_AUTO_TEST_CASE( training_has_no_live_score )
+BOOST_AUTO_TEST_CASE( training_sends_live_score )
 {
-	struct LiveEvents : public RecordingEvents
-	{
-		int live = 0;
-		void liveScore(int, int, int, int, int, int) override { ++live; }
-	};
-	auto events = std::make_shared<LiveEvents>();
+	auto events = std::make_shared<RecordingEvents>();
 	TournamentDirector director(0, 3000);
 	director.setEvents(events);
 	director.setAssignments({training(9, 12)});
 	director.playerConnected(12);
 	BOOST_REQUIRE_EQUAL(director.takeGamesToStart(0).size(), 1u);
-	director.reportLiveScore(9, 3, 4);
-	BOOST_CHECK_EQUAL(events->live, 0);
+	MatchStats stats;
+	stats.left.touches = 4;
+	director.reportLiveScore(9, 3, 4, &stats);
+	BOOST_REQUIRE_EQUAL(events->live.size(), 1u);
+	BOOST_CHECK(events->live[0].training);
+	BOOST_CHECK(events->live[0].hasStats);
+	BOOST_CHECK_EQUAL(events->live[0].player1, 12);
+	BOOST_CHECK_EQUAL(events->live[0].player2, 0);
+	BOOST_CHECK_EQUAL(events->live[0].points2, 4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

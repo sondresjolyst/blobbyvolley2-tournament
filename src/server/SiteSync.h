@@ -237,6 +237,10 @@ struct LiveScore
 	int points1 = 0;
 	int player2 = 0;
 	int points2 = 0;
+	bool hasStats = false;
+	MatchStats stats;
+	/// A training match, whose player 2 is the bot with id 0.
+	bool training = false;
 };
 
 /// Where the site link keeps its files.
@@ -356,7 +360,8 @@ class SiteReporter : public TournamentEvents
 		void matchConnected(int matchId, int player1, int player2) override;
 		void gameEnded(const GameReport& report) override;
 		void seriesEnded(const SeriesResult& result) override;
-		void liveScore(int matchId, int game, int player1, int points1, int player2, int points2) override;
+		void liveScore(int matchId, int game, int player1, int points1, int player2, int points2,
+					   const MatchStats* stats, bool training) override;
 
 	private:
 		void run();

@@ -947,11 +947,15 @@ void DedicatedServer::checkTournamentGames(unsigned long long now_ms)
 			// the site shows the score of running games
 			const int points1 = entry.game->getScore(LEFT_PLAYER);
 			const int points2 = entry.game->getScore(RIGHT_PLAYER);
-			if( points1 != entry.livePoints1 || points2 != entry.livePoints2 )
+			// the stats move without a point, so a report also goes out once per second
+			const bool changed = points1 != entry.livePoints1 || points2 != entry.livePoints2;
+			if( changed || now_ms >= entry.liveAtMs + 1000 )
 			{
 				entry.livePoints1 = points1;
 				entry.livePoints2 = points2;
-				mTournament->reportLiveScore( entry.matchId, points1, points2 );
+				entry.liveAtMs = now_ms;
+				const MatchStats liveStats = entry.game->getStats();
+				mTournament->reportLiveScore( entry.matchId, points1, points2, &liveStats );
 			}
 		}
 		if( !entry.reported )
@@ -1144,7 +1148,7 @@ void DedicatedServer::startTournamentGame(const TournamentDirector::GameOrder& o
 	SWLS_Games++;
 	mGameList.push_back( game );
 	mTournamentGames.push_back( TournamentGame{ match.matchId, game, std::chrono::system_clock::now(), false,
-												match.player1, match.player2, -1, -1, false, false, false } );
+												match.player1, match.player2, -1, -1, false, false, false, 0 } );
 
 	syslog(LOG_NOTICE, "Match %d game %d started: '%s' vs. '%s', rules %s, %d points, speed %d, best of %d",
 		   match.matchId, order.game, left.getName().c_str(), right.getName().c_str(),
@@ -1239,7 +1243,7 @@ void DedicatedServer::startTrainingGame(const TournamentDirector::GameOrder& ord
 	SWLS_Games++;
 	mGameList.push_back( game );
 	mTournamentGames.push_back( TournamentGame{ match.matchId, game, std::chrono::system_clock::now(), false,
-												match.player1, 0, -1, -1, true, false, false } );
+												match.player1, 0, -1, -1, true, false, false, 0 } );
 
 	syslog(LOG_NOTICE, "Match %d training started: '%s' vs. the bot %s at difficulty %d, rules %s, %d points, speed %d",
 		   match.matchId, human.getName().c_str(), match.bot.c_str(), match.botDifficulty,

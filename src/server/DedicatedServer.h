@@ -225,6 +225,8 @@ class DedicatedServer
 			bool botLogged;
 			// the game was paused for a silent player when it was checked last
 			bool waiting;
+			// steady clock time of the last live report
+			unsigned long long liveAtMs;
 		};
 		// logs once how the bot of a finished training game did
 		void logTrainingBot(TournamentGame& entry);
