@@ -9,6 +9,13 @@
       "description": "Do not automerge until CI runs on this fork",
       "matchPackageNames": ["*"],
       "automerge": false
+    },
+    {
+      "description": "The Linux package builds on Ubuntu 24.04 so it runs on systems with an older glibc",
+      "matchFileNames": [".github/workflows/package.yaml"],
+      "matchDatasources": ["github-runners"],
+      "matchCurrentValue": "24.04",
+      "enabled": false
     }
   ]
 }
