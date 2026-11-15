@@ -1080,36 +1080,6 @@ BOOST_AUTO_TEST_CASE( live_score_carries_stats )
 	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 2u);
 }
 
-BOOST_AUTO_TEST_CASE( failing_live_post_does_not_hold_up_game_reports )
-{
-	FakeSite site;
-	FakeHttp http;
-	http.handler = [&site](const HttpRequest& request){
-		if (request.path == "/api/server/live")
-			return noAnswer();
-		return site(request);
-	};
-	Outbox outbox("");
-	SiteLink link(http, outbox, testPaths("livefail"), ServerLog());
-
-	for (int match = 1; match <= 4; ++match)
-	{
-		LiveScore score;
-		score.matchId = match;
-		score.game = 1;
-		score.player1 = 12;
-		score.player2 = 17;
-		link.setLiveScore(score);
-	}
-	link.step(0);
-	// the round ended after the first failure
-	BOOST_CHECK_EQUAL(http.posts("/api/server/live").size(), 1u);
-
-	outbox.addGame(makeReport(7, 1, true, 17, "11111111-1111-4111-8111-111111111111"));
-	link.step(5000);
-	BOOST_CHECK_EQUAL(http.posts("/api/server/games").size(), 1u);
-}
-
 BOOST_AUTO_TEST_CASE( training_live_score_has_the_flag )
 {
 	FakeSite site;

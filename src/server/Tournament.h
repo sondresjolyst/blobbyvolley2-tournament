@@ -104,8 +104,8 @@ class TournamentEvents
 		virtual void gameEnded(const GameReport& report) = 0;
 		/// A player has won the series.
 		virtual void seriesEnded(const SeriesResult& result) = 0;
-		/// The score or the stats of a running game, training games too. It runs when the score changes and about
-		/// once a second otherwise. Player 1 plays on the left. Does nothing by default.
+		/// The score of a running game changed, training games included. Player 1 plays on the left.
+		/// Does nothing by default.
 		virtual void liveScore(int matchId, int game, int player1, int points1, int player2, int points2,
 							   const MatchStats* stats, bool training);
 };
