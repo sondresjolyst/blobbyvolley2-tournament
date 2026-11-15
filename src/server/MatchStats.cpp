@@ -2,20 +2,6 @@
 
 #include "GameConstants.h"
 
-namespace
-{
-	nlohmann::json playerJson(int playerId, const PlayerStats& p)
-	{
-		return nlohmann::json{
-			{"playerId", playerId},
-			{"ballSteps", p.ballSteps},
-			{"touches", p.touches},
-			{"errors", p.errors},
-			{"netHits", p.netHits}
-		};
-	}
-}
-
 void MatchStatsCounter::observe(const StepView& step)
 {
 	const bool ballLeft = step.ballX < NET_POSITION_X;
@@ -72,14 +58,4 @@ void MatchStatsCounter::observe(const StepView& step)
 MatchStats MatchStatsCounter::snapshot() const
 {
 	return mStats;
-}
-
-nlohmann::json statsJson(const MatchStats& s, int player1, int player2)
-{
-	nlohmann::json j;
-	j["players"] = nlohmann::json::array({playerJson(player1, s.left), playerJson(player2, s.right)});
-	j["rallies"] = s.rallies;
-	j["longestRally"] = s.longestRally;
-	j["rallyTouches"] = s.rallyTouches;
-	return j;
 }

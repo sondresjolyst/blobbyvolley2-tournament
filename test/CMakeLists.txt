@@ -74,7 +74,7 @@ add_executable(blobbytest GenericIOTest.cpp FileTest.cpp Base64Test.cpp MatchGol
 
 # the site client tests need nlohmann_json, but not libcurl
 find_package(nlohmann_json 3.10 CONFIG REQUIRED)
-target_sources(blobbytest PRIVATE SiteSyncTest.cpp ../src/server/SiteSync.cpp ../src/server/SiteSync.h)
+target_sources(blobbytest PRIVATE SiteSyncTest.cpp ../src/server/SiteSync.cpp ../src/server/SiteSync.h ../src/server/MatchStatsJson.cpp ../src/server/MatchStatsJson.h)
 target_link_libraries(blobbytest nlohmann_json::nlohmann_json)
 
 # the launcher tests need the update library, which needs nlohmann_json

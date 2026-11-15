@@ -12,6 +12,7 @@
 #include "server/FileUtil.h"
 #include "server/JoinCodes.h"
 #include "server/MatchAssignments.h"
+#include "server/MatchStatsJson.h"
 #include "base64.h"
 #include "TestBmp.h"
 #include "TestDir.h"
@@ -1102,6 +1103,30 @@ BOOST_AUTO_TEST_CASE( sponsors_are_capped_and_names_are_cut )
 	BOOST_CHECK(!contains(stored, std::string(65, 'n')));
 	std::remove((folder + "/logos/" + hash + ".bmp").c_str());
 	std::remove((folder + "/board.json").c_str());
+}
+
+BOOST_AUTO_TEST_CASE( stats_json_matches_the_contract )
+{
+	MatchStats s;
+	s.left.ballSteps = 4120;
+	s.left.touches = 31;
+	s.right.errors = 4;
+	s.rallies = 14;
+	s.longestRally = 9;
+	s.rallyTouches = 58;
+	const nlohmann::json j = statsJson(s, 12, 7);
+	BOOST_REQUIRE_EQUAL(j["players"].size(), 2u);
+	BOOST_CHECK_EQUAL(j["players"][0]["playerId"], 12);
+	BOOST_CHECK_EQUAL(j["players"][1]["playerId"], 7);
+	BOOST_CHECK_EQUAL(j["players"][0]["ballSteps"], 4120);
+	BOOST_CHECK_EQUAL(j["players"][0]["touches"], 31);
+	BOOST_CHECK_EQUAL(j["players"][1]["errors"], 4);
+	BOOST_CHECK_EQUAL(j["players"][0]["netHits"], 0);
+	BOOST_CHECK_EQUAL(j["players"][0].size(), 5u);
+	BOOST_CHECK_EQUAL(j.size(), 4u);
+	BOOST_CHECK_EQUAL(j["rallies"], 14);
+	BOOST_CHECK_EQUAL(j["longestRally"], 9);
+	BOOST_CHECK_EQUAL(j["rallyTouches"], 58);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

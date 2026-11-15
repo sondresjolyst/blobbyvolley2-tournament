@@ -176,6 +176,7 @@ if (UNIX AND (NOT ANDROID) OR WIN32)
 	if (BLOBBY_SITE_SYNC_ENABLED)
 		target_sources(blobby-server PRIVATE
 			server/SiteSync.cpp server/SiteSync.h
+			server/MatchStatsJson.cpp server/MatchStatsJson.h
 			server/CurlHttpClient.cpp server/CurlHttpClient.h)
 		target_compile_definitions(blobby-server PRIVATE BLOBBY_SITE_SYNC)
 		target_link_libraries(blobby-server nlohmann_json::nlohmann_json)

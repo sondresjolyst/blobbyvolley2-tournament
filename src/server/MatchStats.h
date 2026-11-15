@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 #include "MatchEvents.h"
 
 struct PlayerStats
@@ -44,6 +42,3 @@ private:
 	int mLastTouchesRight = 0;
 	int mRallyTouches = 0;
 };
-
-// the statsJson contract of the tournament site
-nlohmann::json statsJson(const MatchStats& s, int player1, int player2);
