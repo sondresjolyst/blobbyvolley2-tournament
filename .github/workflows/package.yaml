@@ -177,7 +177,7 @@ jobs:
     name: Linux (x64)
     if: github.event_name == 'pull_request' || contains(inputs.platforms, 'linux')
     # The oldest Ubuntu in CI, so the package runs on systems with an older glibc too.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
